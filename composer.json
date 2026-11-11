@@ -1,0 +1,45 @@
+{
+    "name": "cyberwizard/laravel-runtime-manager",
+    "description": "Run Laravel scheduler, queues, maintenance, health and watchdog from a single cron entry on shared hosting (cPanel) — no Supervisor, systemd, Redis, SSH or VPS.",
+    "keywords": ["laravel", "shared-hosting", "cpanel", "queue", "scheduler", "cron", "runtime", "no-ssh"],
+    "license": "MIT",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Cyberwizard"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "illuminate/support": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/console": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/database": "^11.0 || ^12.0 || ^13.0",
+        "illuminate/queue": "^11.0 || ^12.0 || ^13.0"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^9.0 || ^10.0 || ^11.0",
+        "phpunit/phpunit": "^10.5 || ^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Cyberwizard\\RuntimeManager\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Cyberwizard\\RuntimeManager\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Cyberwizard\\RuntimeManager\\RuntimeManagerServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
