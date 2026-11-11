@@ -3,54 +3,89 @@
 namespace Cyberwizard\RuntimeManager\Console\Commands;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Str;
 
 /**
- * Prints the signed HTTP fallback trigger URL and a ready-to-use pinger snippet
- * for hosts without cron. The trigger must be enabled and a secret configured.
+ * Prints an external cron URL you can hand to any "ping this URL every minute"
+ * service. If no token is configured yet it generates one, enables the trigger,
+ * and writes both to .env (then reminds you to reload cached config).
  */
 class HttpUrlCommand extends Command
 {
-    protected $signature = 'runtime:http-url';
+    protected $signature = 'runtime:http-url
+        {--regenerate : Replace the existing token with a new one}';
 
-    protected $description = 'Show the signed HTTP fallback trigger URL and an example pinger.';
+    protected $description = 'Show (and set up) the external URL an online cron service can call every minute.';
 
     public function handle(): int
     {
-        $config = (array) config('runtime-manager.http_trigger');
+        $token = (string) config('runtime-manager.http_trigger.token', '');
+        $enabled = (bool) config('runtime-manager.http_trigger.enabled', false);
+        $wrote = [];
 
-        if (! ($config['enabled'] ?? false)) {
-            $this->warn('HTTP trigger is disabled. Set RUNTIME_HTTP_TRIGGER_ENABLED=true and a RUNTIME_HTTP_TRIGGER_SECRET to use it.');
-
-            return self::INVALID;
+        if ($token === '' || $this->option('regenerate')) {
+            $token = Str::random(48);
+            $wrote['RUNTIME_HTTP_TRIGGER_TOKEN'] = $token;
         }
 
-        if (empty($config['secret'])) {
-            $this->error('RUNTIME_HTTP_TRIGGER_SECRET is not set.');
-
-            return self::FAILURE;
+        if (! $enabled) {
+            $wrote['RUNTIME_HTTP_TRIGGER_ENABLED'] = 'true';
         }
 
-        $url = rtrim((string) config('app.url'), '/')
+        $envWritten = true;
+        foreach ($wrote as $key => $value) {
+            $envWritten = $this->upsertEnv($key, $value) && $envWritten;
+        }
+
+        $base = rtrim((string) config('app.url'), '/')
             . '/' . trim((string) config('runtime-manager.dashboard.path', 'runtime'), '/') . '/trigger';
+        $url = $base . '?token=' . $token;
 
         $this->newLine();
-        $this->info('Signed HTTP trigger URL:');
+        $this->info('External cron URL (call this once a minute):');
         $this->line('  <fg=green>' . $url . '</>');
         $this->newLine();
-        $this->line('Call it once a minute from an external scheduler/uptime service. Each request must send:');
-        $this->line('  <comment>X-Runtime-Timestamp: <unix seconds></comment>');
-        $this->line('  <comment>X-Runtime-Signature: hmac_sha256(secret, timestamp)</comment>');
+        $this->line('Use it with any cron/uptime service (cron-job.org, EasyCron, UptimeRobot, GitHub Actions cron, …).');
+        $this->line('Method GET or POST. Prefer sending the token as the <comment>X-Runtime-Token</comment> header');
+        $this->line('instead of the query string when your service supports custom headers (keeps it out of logs).');
         $this->newLine();
-        $this->line('Example bash pinger (run every minute):');
-        $this->line(<<<BASH
-  <comment>TS=\$(date +%s)
-  SIG=\$(printf "%s" "\$TS" | openssl dgst -sha256 -hmac "\$RUNTIME_SECRET" | awk '{print \$2}')
-  curl -s -X POST "{$url}" -H "X-Runtime-Timestamp: \$TS" -H "X-Runtime-Signature: \$SIG"</comment>
-BASH);
-        $this->newLine();
-        $this->line('The timestamp window is ' . ($config['window_seconds'] ?? 60) . 's; each signature is accepted once (replay-protected).');
+
+        if ($wrote !== []) {
+            if ($envWritten) {
+                $this->line('Wrote to .env: <comment>' . implode(', ', array_keys($wrote)) . '</comment>');
+                $this->warn('Reload cached config for it to take effect:  php artisan config:clear   (or config:cache)');
+            } else {
+                $this->warn('Could not write .env automatically. Add these lines yourself:');
+                foreach ($wrote as $k => $v) {
+                    $this->line("  {$k}=" . (str_contains($v, ' ') ? "'{$v}'" : $v));
+                }
+            }
+            $this->newLine();
+        }
+
+        $this->line('Security: the token is unguessable and the endpoint only runs a tick (no data exposed),');
+        $this->line('but keep it secret, always use HTTPS, and the route is rate-limited. Rotate with --regenerate.');
         $this->newLine();
 
         return self::SUCCESS;
+    }
+
+    /** Upsert a KEY=value pair in .env (single-quoted when needed). */
+    private function upsertEnv(string $key, string $value): bool
+    {
+        $path = base_path('.env');
+        if (! is_file($path) || ! is_writable($path)) {
+            return false;
+        }
+
+        $contents = (string) file_get_contents($path);
+        $line     = $key . '=' . (preg_match('/[\s$]/', $value) ? "'" . $value . "'" : $value);
+        $pattern  = '/^' . preg_quote($key, '/') . '=.*$/m';
+
+        $contents = preg_match($pattern, $contents)
+            ? preg_replace($pattern, $line, $contents)
+            : rtrim($contents, "\n") . "\n" . $line . "\n";
+
+        return file_put_contents($path, $contents) !== false;
     }
 }

@@ -114,6 +114,15 @@ return [
     */
     'http_trigger' => [
         'enabled'        => env('RUNTIME_HTTP_TRIGGER_ENABLED', false),
+
+        // Simple token mode — for any "ping this URL every minute" service
+        // (cron-job.org, EasyCron, UptimeRobot, GitHub Actions cron, etc.).
+        // The token may be passed as ?token=... or the X-Runtime-Token header.
+        // Unguessable + HTTPS + rate-limited; the endpoint only runs a tick and
+        // returns {status,duration_ms}, exposing no data.
+        'token'          => env('RUNTIME_HTTP_TRIGGER_TOKEN'),
+
+        // HMAC mode — for pingers that can sign each request (most secure).
         'secret'         => env('RUNTIME_HTTP_TRIGGER_SECRET'),
         'window_seconds' => 60,
         'throttle'       => '2,1',

@@ -323,20 +323,32 @@ Add the verification step to your `deploy.json` `post_extraction_commands` (afte
 
 `runtime:post-deploy` checks health, ensures the `storage` symlink, verifies the scheduler and queue, and records the deployment. It runs migrations **only** if you pass `--migrate`, so it's safe to run on every deploy.
 
-## No cron? Signed HTTP fallback
+## No cron? External URL trigger
 
-For the rare host without cron, enable an authenticated HTTP trigger and have an external uptime service (e.g. a cron-ping provider) hit it every minute:
-
-```dotenv
-RUNTIME_HTTP_TRIGGER_ENABLED=true
-RUNTIME_HTTP_TRIGGER_SECRET=a-long-random-secret
-```
+Don't have (or don't want) a server cron? Drive the tick from any online cron/uptime service. One command sets it up:
 
 ```bash
-php artisan runtime:http-url   # prints the URL + a ready pinger snippet
+php artisan runtime:http-url
 ```
 
-The endpoint is **off by default** and, when enabled, is HMAC-signed, timestamp-windowed, replay-protected (one-time nonce) and rate-limited. The CLI runner remains SAPI-guarded regardless.
+It generates a token, enables the trigger, writes both to `.env`, and prints a ready URL:
+
+```
+https://your-app.com/runtime/trigger?token=<long-random-token>
+```
+
+Paste that into **cron-job.org, EasyCron, UptimeRobot, GitHub Actions cron** — anything that can request a URL on a schedule (GET or POST) — set to every minute. Reload cached config afterwards (`php artisan config:clear`). Rotate anytime with `--regenerate`.
+
+**Two auth modes, either accepted:**
+
+- **Token** (simple, above) — `?token=...` or the `X-Runtime-Token` header. Works with every cron-url service; prefer the header when supported, to keep the token out of access logs.
+- **HMAC** (most secure, for pingers that can sign each request) — `X-Runtime-Timestamp` + `X-Runtime-Signature: hmac_sha256(secret, timestamp)`, timestamp-windowed and replay-protected:
+  ```dotenv
+  RUNTIME_HTTP_TRIGGER_ENABLED=true
+  RUNTIME_HTTP_TRIGGER_SECRET=a-long-random-secret
+  ```
+
+The endpoint is **off by default**, rate-limited, and only runs a tick (returns `{status, duration_ms}` — no data exposed). The CLI runner stays SAPI-guarded regardless.
 
 ## Watchdog, health & alerts
 

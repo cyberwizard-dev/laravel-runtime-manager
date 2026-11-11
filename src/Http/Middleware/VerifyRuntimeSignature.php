@@ -8,17 +8,21 @@ use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Authenticates the optional HTTP fallback trigger (for hosts without cron).
+ * Authenticates the optional HTTP fallback trigger (for hosts without cron, or
+ * to drive the tick from an external cron service). Two modes are supported;
+ * either is sufficient:
  *
- * The external pinger must send:
- *   X-Runtime-Timestamp: <unix seconds>
- *   X-Runtime-Signature: hmac_sha256(secret, timestamp)
+ * 1. TOKEN mode — a long unguessable token sent as `?token=...` or the
+ *    `X-Runtime-Token` header. This works with ANY "ping this URL every minute"
+ *    service (cron-job.org, EasyCron, UptimeRobot, GitHub Actions cron, …) that
+ *    cannot compute a per-request signature. Compared in constant time.
  *
- * We verify the HMAC with a constant-time comparison, require the timestamp to
- * be within a short window (clock-skew tolerant, replay-limiting), and record a
- * one-time nonce for the window so a captured request cannot be replayed. The
- * route is additionally rate-limited. Unlike the deployer's one-time deploy
- * token, this is a stable secret because the trigger recurs every minute.
+ * 2. HMAC mode — `X-Runtime-Timestamp` + `X-Runtime-Signature:
+ *    hmac_sha256(secret, timestamp)`, with a timestamp window and one-time
+ *    replay nonce, for pingers that can sign each request (most secure).
+ *
+ * The route is rate-limited regardless, and the endpoint only runs a tick and
+ * returns {status, duration_ms} — it exposes no application data.
  */
 class VerifyRuntimeSignature
 {
@@ -30,17 +34,35 @@ class VerifyRuntimeSignature
             abort(404);
         }
 
+        $token  = (string) ($config['token'] ?? '');
         $secret = (string) ($config['secret'] ?? '');
-        if ($secret === '') {
-            abort(503, 'HTTP trigger secret not configured.');
+
+        if ($token === '' && $secret === '') {
+            abort(503, 'HTTP trigger has no token or secret configured.');
         }
 
+        // --- Token mode -----------------------------------------------------
+        if ($token !== '') {
+            $provided = (string) $request->query('token', '');
+            if ($provided === '') {
+                $provided = (string) $request->header('X-Runtime-Token', '');
+            }
+            if ($provided !== '' && hash_equals($token, $provided)) {
+                return $next($request);
+            }
+            // If no HMAC secret is configured, a token mismatch is the end of the line.
+            if ($secret === '') {
+                abort(401, 'Invalid token.');
+            }
+        }
+
+        // --- HMAC mode ------------------------------------------------------
         $timestamp = (string) $request->header('X-Runtime-Timestamp', '');
         $signature = (string) $request->header('X-Runtime-Signature', '');
         $window    = (int) ($config['window_seconds'] ?? 60);
 
         if ($timestamp === '' || $signature === '' || ! ctype_digit($timestamp)) {
-            abort(401, 'Missing signature.');
+            abort(401, 'Missing credentials.');
         }
 
         if (abs(time() - (int) $timestamp) > $window) {
