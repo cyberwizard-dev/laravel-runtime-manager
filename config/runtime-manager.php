@@ -148,6 +148,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Outgoing mail monitoring (optional, OFF by default)
+    |--------------------------------------------------------------------------
+    | Records transport handoffs for mail sent through Laravel. Stores recipient
+    | domains, a count, the subject and the mailer — never full addresses or
+    | bodies. A recorded "sent" means the transport accepted the message; it is
+    | NOT a guarantee of inbox delivery.
+    */
+    'mail_monitor' => [
+        'enabled'         => env('RUNTIME_MAIL_MONITOR', false),
+        'retention_hours' => env('RUNTIME_MAIL_RETENTION_HOURS', 72),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Watchdog / heartbeat
     |--------------------------------------------------------------------------
     | 'stale_after' marks the cron "down" in the dashboard when no tick has

@@ -12,6 +12,8 @@ use Cyberwizard\RuntimeManager\Services\HealthService;
 use Cyberwizard\RuntimeManager\Services\HousekeepingService;
 use Cyberwizard\RuntimeManager\Services\HttpMonitor;
 use Cyberwizard\RuntimeManager\Services\HttpMonitorInspector;
+use Cyberwizard\RuntimeManager\Services\MailMonitor;
+use Cyberwizard\RuntimeManager\Services\MailMonitorInspector;
 use Cyberwizard\RuntimeManager\Services\MaintenanceService;
 use Cyberwizard\RuntimeManager\Services\QueueInspector;
 use Cyberwizard\RuntimeManager\Services\QueueService;
@@ -43,6 +45,8 @@ class RuntimeManagerServiceProvider extends ServiceProvider
         $this->app->singleton(CacheHealthService::class, fn ($app) => new CacheHealthService($app->make(CacheFactory::class)));
         $this->app->singleton(HttpMonitor::class, fn ($app) => new HttpMonitor($app->make(DatabaseManager::class)));
         $this->app->singleton(HttpMonitorInspector::class, fn ($app) => new HttpMonitorInspector($app->make(DatabaseManager::class)));
+        $this->app->singleton(MailMonitor::class, fn ($app) => new MailMonitor($app->make(DatabaseManager::class)));
+        $this->app->singleton(MailMonitorInspector::class, fn ($app) => new MailMonitorInspector($app->make(DatabaseManager::class)));
         $this->app->singleton(HealthService::class, fn ($app) => new HealthService(
             $app,
             $app->make(CacheHealthService::class),
@@ -86,6 +90,10 @@ class RuntimeManagerServiceProvider extends ServiceProvider
 
         if ((bool) config('runtime-manager.http_monitor.enabled', false)) {
             $this->app->make(HttpMonitor::class)->register($this->app->make(Dispatcher::class));
+        }
+
+        if ((bool) config('runtime-manager.mail_monitor.enabled', false)) {
+            $this->app->make(MailMonitor::class)->register($this->app->make(Dispatcher::class));
         }
 
         if ($this->app->runningInConsole()) {

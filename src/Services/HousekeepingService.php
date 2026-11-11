@@ -29,6 +29,7 @@ class HousekeepingService
         $summary['pruned_runs']  = $this->pruneRuns();
         $summary['pruned_audit'] = $this->pruneAudit();
         $summary['pruned_http']  = $this->pruneHttpLog();
+        $summary['pruned_mail']  = $this->pruneMailLog();
         $summary['gc_sessions']  = $this->gcDatabaseSessions();
 
         if (microtime(true) < $deadline) {
@@ -83,6 +84,30 @@ class HousekeepingService
             }
 
             return DB::table('runtime_http_requests')
+                ->where('created_at', '<', Carbon::now()->subHours($hours))
+                ->delete();
+        } catch (Throwable) {
+            return 0;
+        }
+    }
+
+    private function pruneMailLog(): int
+    {
+        if (! (bool) config('runtime-manager.mail_monitor.enabled', false)) {
+            return 0;
+        }
+
+        $hours = (int) ($this->config['mail_monitor']['retention_hours'] ?? 72);
+        if ($hours <= 0) {
+            return 0;
+        }
+
+        try {
+            if (! Schema::hasTable('runtime_mail_log')) {
+                return 0;
+            }
+
+            return DB::table('runtime_mail_log')
                 ->where('created_at', '<', Carbon::now()->subHours($hours))
                 ->delete();
         } catch (Throwable) {

@@ -75,6 +75,9 @@
       @if(config('runtime-manager.http_monitor.enabled'))
         <a href="{{ route('runtime.http') }}" class="{{ $cur==='runtime.http'?'active':'' }}">HTTP</a>
       @endif
+      @if(config('runtime-manager.mail_monitor.enabled'))
+        <a href="{{ route('runtime.mail') }}" class="{{ $cur==='runtime.mail'?'active':'' }}">Mail</a>
+      @endif
       <a href="{{ route('runtime.logs') }}" class="{{ $cur==='runtime.logs'?'active':'' }}">Logs</a>
       <a href="{{ route('runtime.setup') }}" class="{{ $cur==='runtime.setup'?'active':'' }}">Setup</a>
     </nav>

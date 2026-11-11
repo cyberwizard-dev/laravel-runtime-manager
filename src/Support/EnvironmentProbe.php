@@ -131,7 +131,7 @@ class EnvironmentProbe
     }
 
     /** Overall readiness: true when nothing blocks the runtime from operating. */
-    public function isReady(array $detected = null): bool
+    public function isReady(?array $detected = null): bool
     {
         $d = $detected ?? $this->detect();
 

@@ -4,6 +4,7 @@ use Cyberwizard\RuntimeManager\Http\Controllers\AuthController;
 use Cyberwizard\RuntimeManager\Http\Controllers\DashboardController;
 use Cyberwizard\RuntimeManager\Http\Controllers\HttpController;
 use Cyberwizard\RuntimeManager\Http\Controllers\LogsController;
+use Cyberwizard\RuntimeManager\Http\Controllers\MailController;
 use Cyberwizard\RuntimeManager\Http\Controllers\QueueController;
 use Cyberwizard\RuntimeManager\Http\Controllers\SchedulerController;
 use Cyberwizard\RuntimeManager\Http\Controllers\SetupController;
@@ -25,6 +26,7 @@ Route::middleware(DashboardAuth::class)->group(function () {
 
     Route::get('scheduler', [SchedulerController::class, 'index'])->name('scheduler');
     Route::get('http', [HttpController::class, 'index'])->name('http');
+    Route::get('mail', [MailController::class, 'index'])->name('mail');
     Route::get('logs', [LogsController::class, 'index'])->name('logs');
 
     Route::get('setup', [SetupController::class, 'index'])->name('setup');
