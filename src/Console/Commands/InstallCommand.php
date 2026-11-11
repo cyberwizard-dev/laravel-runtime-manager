@@ -107,7 +107,7 @@ class InstallCommand extends Command
             $this->line('  • Dashboard password hash written to .env');
         } else {
             $this->warn('  • Could not write .env automatically. Add this line yourself:');
-            $this->line('      RUNTIME_DASHBOARD_PASSWORD="' . $hash . '"');
+            $this->line("      RUNTIME_DASHBOARD_PASSWORD='" . $hash . "'");
         }
 
         if (! $this->option('password')) {
@@ -126,7 +126,9 @@ class InstallCommand extends Command
         }
 
         $contents = (string) file_get_contents($path);
-        $line     = $key . '="' . $value . '"';
+        // Single quotes keep the value literal: bcrypt hashes contain "$...."
+        // segments that phpdotenv would otherwise treat as variable interpolation.
+        $line     = $key . "='" . $value . "'";
         $pattern  = '/^' . preg_quote($key, '/') . '=.*$/m';
 
         $contents = preg_match($pattern, $contents)

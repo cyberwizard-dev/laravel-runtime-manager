@@ -18,6 +18,8 @@ abstract class TestCase extends Orchestra
 
         // Encryption/session key for HTTP (dashboard) tests.
         $config->set('app.key', 'base64:' . base64_encode(random_bytes(32)));
+        // Array session driver so withSession() is deterministic in feature tests.
+        $config->set('session.driver', 'array');
 
         // In-memory SQLite so the package migrations run fast and isolated.
         $config->set('database.default', 'testbench');
