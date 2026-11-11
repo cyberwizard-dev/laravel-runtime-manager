@@ -18,6 +18,20 @@
   <div>PHP CLI binary</div><div class="mono">{{ $env['php']['cli_binary'] }}</div>
 </div>
 
+<h2>1b · External cron URL (optional — no server cron needed)</h2>
+@if($triggerUrl)
+  <p class="muted">Call this URL every minute from any online cron service (cron-job.org, EasyCron, UptimeRobot, GitHub Actions cron). Method GET or POST.</p>
+  <code class="cron" id="trigUrl">{{ $triggerUrl }}</code>
+  <div class="toolbar" style="margin-top:10px">
+    <button class="btn" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('trigUrl').textContent.trim());this.textContent='Copied';">Copy URL</button>
+    <span class="muted">Tip: send the token as the <span class="mono">X-Runtime-Token</span> header instead of the query string to keep it out of access logs.</span>
+  </div>
+@elseif($triggerEnabled && ! $triggerHasToken)
+  <div class="banner warn">The HTTP trigger is enabled but no token is set. Run <span class="mono">php artisan runtime:http-url</span> to generate one.</div>
+@else
+  <div class="banner" style="background:var(--chip);border-color:var(--line);color:var(--muted)">Prefer an external cron service over a server cron? Run <span class="mono">php artisan runtime:http-url</span> to generate a URL you can call every minute. (Off by default.)</div>
+@endif
+
 <h2>2 · Environment</h2>
 <div class="grid">
   <div class="card">

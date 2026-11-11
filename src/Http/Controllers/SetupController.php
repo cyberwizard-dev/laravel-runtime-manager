@@ -17,9 +17,21 @@ class SetupController extends Controller
     {
         $detected = $probe->detect();
 
+        $trigger = (array) config('runtime-manager.http_trigger');
+        $triggerToken = (string) ($trigger['token'] ?? '');
+        $triggerUrl = null;
+        if (($trigger['enabled'] ?? false) && $triggerToken !== '') {
+            $triggerUrl = rtrim((string) config('app.url'), '/')
+                . '/' . trim((string) config('runtime-manager.dashboard.path', 'runtime'), '/')
+                . '/trigger?token=' . $triggerToken;
+        }
+
         return view('runtime-manager::setup', [
-            'env'   => $detected,
-            'ready' => $probe->isReady($detected),
+            'env'            => $detected,
+            'ready'          => $probe->isReady($detected),
+            'triggerEnabled' => (bool) ($trigger['enabled'] ?? false),
+            'triggerHasToken'=> $triggerToken !== '',
+            'triggerUrl'     => $triggerUrl,
         ]);
     }
 
