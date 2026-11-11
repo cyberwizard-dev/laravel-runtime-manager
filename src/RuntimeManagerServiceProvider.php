@@ -96,6 +96,20 @@ class RuntimeManagerServiceProvider extends ServiceProvider
             $this->app->make(MailMonitor::class)->register($this->app->make(Dispatcher::class));
         }
 
+        // Register commands unconditionally (NOT gated behind runningInConsole):
+        // they must be callable through a Console kernel booted under a non-CLI
+        // SAPI too — e.g. an FTP deployer's HTTP "remote artisan" bridge, or
+        // Artisan::call() from a web/queue context. Gating on runningInConsole()
+        // (false under those SAPIs) would make `runtime:post-deploy` and the
+        // other commands silently unavailable during deployment.
+        $this->commands([
+            InstallCommand::class,
+            CronCommandCommand::class,
+            TickCommand::class,
+            PostDeployCommand::class,
+            HttpUrlCommand::class,
+        ]);
+
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__ . '/../config/runtime-manager.php' => config_path('runtime-manager.php'),
@@ -104,14 +118,6 @@ class RuntimeManagerServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__ . '/../database/migrations' => database_path('migrations'),
             ], 'runtime-manager-migrations');
-
-            $this->commands([
-                InstallCommand::class,
-                CronCommandCommand::class,
-                TickCommand::class,
-                PostDeployCommand::class,
-                HttpUrlCommand::class,
-            ]);
         }
     }
 
