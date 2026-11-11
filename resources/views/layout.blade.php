@@ -72,6 +72,9 @@
       <a href="{{ route('runtime.dashboard') }}" class="{{ $cur==='runtime.dashboard'?'active':'' }}">Overview</a>
       <a href="{{ route('runtime.queue') }}" class="{{ $cur==='runtime.queue'?'active':'' }}">Queue</a>
       <a href="{{ route('runtime.scheduler') }}" class="{{ $cur==='runtime.scheduler'?'active':'' }}">Scheduler</a>
+      @if(config('runtime-manager.http_monitor.enabled'))
+        <a href="{{ route('runtime.http') }}" class="{{ $cur==='runtime.http'?'active':'' }}">HTTP</a>
+      @endif
       <a href="{{ route('runtime.logs') }}" class="{{ $cur==='runtime.logs'?'active':'' }}">Logs</a>
       <a href="{{ route('runtime.setup') }}" class="{{ $cur==='runtime.setup'?'active':'' }}">Setup</a>
     </nav>

@@ -10,6 +10,8 @@ use Cyberwizard\RuntimeManager\Console\Commands\TickCommand;
 use Cyberwizard\RuntimeManager\Services\CacheHealthService;
 use Cyberwizard\RuntimeManager\Services\HealthService;
 use Cyberwizard\RuntimeManager\Services\HousekeepingService;
+use Cyberwizard\RuntimeManager\Services\HttpMonitor;
+use Cyberwizard\RuntimeManager\Services\HttpMonitorInspector;
 use Cyberwizard\RuntimeManager\Services\MaintenanceService;
 use Cyberwizard\RuntimeManager\Services\QueueInspector;
 use Cyberwizard\RuntimeManager\Services\QueueService;
@@ -39,6 +41,8 @@ class RuntimeManagerServiceProvider extends ServiceProvider
         $this->app->singleton(SchedulerInspector::class, fn ($app) => new SchedulerInspector($app));
         $this->app->singleton(QueueInspector::class, fn ($app) => new QueueInspector($app->make(DatabaseManager::class), $config()));
         $this->app->singleton(CacheHealthService::class, fn ($app) => new CacheHealthService($app->make(CacheFactory::class)));
+        $this->app->singleton(HttpMonitor::class, fn ($app) => new HttpMonitor($app->make(DatabaseManager::class)));
+        $this->app->singleton(HttpMonitorInspector::class, fn ($app) => new HttpMonitorInspector($app->make(DatabaseManager::class)));
         $this->app->singleton(HealthService::class, fn ($app) => new HealthService(
             $app,
             $app->make(CacheHealthService::class),
@@ -79,6 +83,10 @@ class RuntimeManagerServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         $this->loadViewsFrom(__DIR__ . '/../resources/views', 'runtime-manager');
         $this->registerRoutes();
+
+        if ((bool) config('runtime-manager.http_monitor.enabled', false)) {
+            $this->app->make(HttpMonitor::class)->register($this->app->make(Dispatcher::class));
+        }
 
         if ($this->app->runningInConsole()) {
             $this->publishes([

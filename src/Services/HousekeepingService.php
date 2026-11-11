@@ -5,6 +5,8 @@ namespace Cyberwizard\RuntimeManager\Services;
 use Cyberwizard\RuntimeManager\Models\RuntimeAudit;
 use Cyberwizard\RuntimeManager\Models\RuntimeRun;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -26,6 +28,8 @@ class HousekeepingService
 
         $summary['pruned_runs']  = $this->pruneRuns();
         $summary['pruned_audit'] = $this->pruneAudit();
+        $summary['pruned_http']  = $this->pruneHttpLog();
+        $summary['gc_sessions']  = $this->gcDatabaseSessions();
 
         if (microtime(true) < $deadline) {
             $summary['log_rotated'] = $this->rotateLogIfLarge();
@@ -57,6 +61,60 @@ class HousekeepingService
 
         try {
             return RuntimeAudit::query()->where('created_at', '<', Carbon::now()->subDays($days))->delete();
+        } catch (Throwable) {
+            return 0;
+        }
+    }
+
+    private function pruneHttpLog(): int
+    {
+        if (! (bool) config('runtime-manager.http_monitor.enabled', false)) {
+            return 0;
+        }
+
+        $hours = (int) ($this->config['http_monitor']['retention_hours'] ?? 24);
+        if ($hours <= 0) {
+            return 0;
+        }
+
+        try {
+            if (! Schema::hasTable('runtime_http_requests')) {
+                return 0;
+            }
+
+            return DB::table('runtime_http_requests')
+                ->where('created_at', '<', Carbon::now()->subHours($hours))
+                ->delete();
+        } catch (Throwable) {
+            return 0;
+        }
+    }
+
+    /** Delete expired sessions when the application uses the database session driver. */
+    private function gcDatabaseSessions(): int
+    {
+        if (! (bool) ($this->config['housekeeping']['gc_db_sessions'] ?? true)) {
+            return 0;
+        }
+
+        if ((string) config('session.driver') !== 'database') {
+            return 0;
+        }
+
+        $table = (string) config('session.table', 'sessions');
+        $lifetime = (int) config('session.lifetime', 120); // minutes
+
+        try {
+            if (! Schema::hasTable($table)) {
+                return 0;
+            }
+
+            $cutoff = Carbon::now()->subMinutes($lifetime)->getTimestamp();
+            $connection = config('session.connection');
+
+            return DB::connection($connection)->table($table)
+                ->where('last_activity', '<=', $cutoff)
+                ->delete();
         } catch (Throwable) {
             return 0;
         }

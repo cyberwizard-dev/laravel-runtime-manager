@@ -2,6 +2,7 @@
 
 use Cyberwizard\RuntimeManager\Http\Controllers\AuthController;
 use Cyberwizard\RuntimeManager\Http\Controllers\DashboardController;
+use Cyberwizard\RuntimeManager\Http\Controllers\HttpController;
 use Cyberwizard\RuntimeManager\Http\Controllers\LogsController;
 use Cyberwizard\RuntimeManager\Http\Controllers\QueueController;
 use Cyberwizard\RuntimeManager\Http\Controllers\SchedulerController;
@@ -23,6 +24,7 @@ Route::middleware(DashboardAuth::class)->group(function () {
     Route::post('queue/flush', [QueueController::class, 'flush'])->name('queue.flush');
 
     Route::get('scheduler', [SchedulerController::class, 'index'])->name('scheduler');
+    Route::get('http', [HttpController::class, 'index'])->name('http');
     Route::get('logs', [LogsController::class, 'index'])->name('logs');
 
     Route::get('setup', [SetupController::class, 'index'])->name('setup');

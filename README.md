@@ -6,7 +6,7 @@ Run your Laravel app's **scheduler, queues, maintenance, health checks and watch
 
 See [`DESIGN.md`](DESIGN.md) for the full architecture, rationale, and the phased plan.
 
-> **Status:** Phases 0–7 implemented and tested (19 passing tests on Laravel 13 / PHP 8.5). One-cron tick with budget + locking + heartbeat; native scheduler and bounded database-queue processing; post-deploy pipeline; standalone-password dashboard + setup wizard with live verification; watchdog, health, housekeeping and cache-health; optional signed HTTP fallback trigger.
+> **Status:** Phases 0–7 implemented and tested (21 passing tests on Laravel 13 / PHP 8.5). One-cron tick with budget + locking + heartbeat; native scheduler and bounded database-queue processing; post-deploy pipeline; standalone-password dashboard + setup wizard with live verification; watchdog, health, housekeeping, cache-health, database-session GC; optional outbound HTTP-client monitoring; optional signed HTTP fallback trigger.
 
 ## How it works
 
@@ -40,6 +40,7 @@ Visit `https://your-app/runtime` and sign in with the standalone password. Pages
 - **Overview** — cron liveness, pending/in-flight/failed jobs, scheduled-task count, recent ticks, health checks, deployment status.
 - **Queue** — backlog by queue, failed jobs with retry/delete/flush (confirmed + audited), processing history.
 - **Scheduler** — registered tasks with next-run and timezone; warnings when `onOneServer`/`runInBackground` would be no-ops on this host.
+- **HTTP** — optional outbound HTTP-client monitoring (host, path, status, duration; never query strings, headers or bodies). Enable with `RUNTIME_HTTP_MONITOR=true`.
 - **Logs** — tick history filterable by status/trigger/date.
 - **Setup** — environment detection, the cron command, and a **Verify** button that runs live checks including a real queue round-trip.
 

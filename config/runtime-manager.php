@@ -129,7 +129,21 @@ return [
     ],
 
     'housekeeping' => [
-        'log_max_bytes' => env('RUNTIME_LOG_MAX_BYTES', 20 * 1048576), // rotate laravel.log above this
+        'log_max_bytes'    => env('RUNTIME_LOG_MAX_BYTES', 20 * 1048576), // rotate laravel.log above this
+        'gc_db_sessions'   => env('RUNTIME_GC_DB_SESSIONS', true),        // delete expired database sessions
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Outgoing HTTP monitoring (optional, OFF by default)
+    |--------------------------------------------------------------------------
+    | Records destination host, path, status, duration and failures for calls
+    | made through Laravel's HTTP client. Never stores query strings, headers,
+    | credentials or bodies.
+    */
+    'http_monitor' => [
+        'enabled'        => env('RUNTIME_HTTP_MONITOR', false),
+        'retention_hours'=> env('RUNTIME_HTTP_RETENTION_HOURS', 24),
     ],
 
     /*
